@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "InfluenceHub",
+    "slug": "influencehub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "influencehub",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.influencehub.app"
+    },
+    "android": {
+      "package": "com.influencehub.app"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "development"
+        }
+      ],
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}
