@@ -9,7 +9,7 @@ interface AppInputProps extends TextInputProps {
   right?: ReactNode;
 }
 
-export const AppInput = ({ label, error, right, ...inputProps }: AppInputProps): JSX.Element => {
+export const AppInput = ({ label, error, right, ...inputProps }: AppInputProps) => {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>

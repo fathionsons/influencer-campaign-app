@@ -7,7 +7,7 @@ interface CardProps extends PropsWithChildren {
   style?: ViewStyle;
 }
 
-export const Card = ({ children, style }: CardProps): JSX.Element => {
+export const Card = ({ children, style }: CardProps) => {
   return <View style={[styles.card, style]}>{children}</View>;
 };
 

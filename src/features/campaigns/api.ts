@@ -1,5 +1,19 @@
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+
+import {
+  assignLocalInfluencerToCampaign,
+  createLocalCampaign,
+  getLocalCampaign,
+  getLocalCampaignById,
+  getLocalInfluencerById,
+  listLocalCampaignInfluencers,
+  listLocalCampaigns,
+  listLocalSubmissions,
+  updateLocalCampaign
+} from '@/lib/localStore';
 import { supabase } from '@/lib/supabase/client';
 import type { Campaign, CampaignInfluencer, Influencer, Submission } from '@/types';
+import { isSupabaseConfigured } from '@/utils/env';
 
 export interface CampaignInput {
   brand_name: string;
@@ -20,22 +34,34 @@ export interface CampaignSubmissionDetails extends Submission {
 }
 
 export const listCampaigns = async (status: Campaign['status'] | 'all'): Promise<Campaign[]> => {
+  if (!isSupabaseConfigured() || !supabase) {
+    return listLocalCampaigns(status);
+  }
+
   let query = supabase.from('campaigns').select('*').order('created_at', { ascending: false });
 
   if (status !== 'all') {
     query = query.eq('status', status);
   }
 
-  const { data, error } = await query;
+  const { data, error } = (await query) as PostgrestResponse<Campaign>;
   if (error) {
     throw error;
   }
 
-  return data;
+  return data ?? [];
 };
 
 export const getCampaignById = async (campaignId: string): Promise<Campaign> => {
-  const { data, error } = await supabase.from('campaigns').select('*').eq('id', campaignId).single();
+  if (!isSupabaseConfigured() || !supabase) {
+    return getLocalCampaign(campaignId);
+  }
+
+  const { data, error } = (await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('id', campaignId)
+    .single()) as PostgrestSingleResponse<Campaign>;
 
   if (error) {
     throw error;
@@ -45,14 +71,22 @@ export const getCampaignById = async (campaignId: string): Promise<Campaign> => 
 };
 
 export const createCampaign = async (ownerUserId: string, input: CampaignInput): Promise<Campaign> => {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured() || !supabase) {
+    return createLocalCampaign({
+      owner_user_id: ownerUserId,
+      ...input,
+      description: input.description ?? null
+    });
+  }
+
+  const { data, error } = (await supabase
     .from('campaigns')
     .insert({
       owner_user_id: ownerUserId,
       ...input
     })
     .select('*')
-    .single();
+    .single()) as PostgrestSingleResponse<Campaign>;
 
   if (error) {
     throw error;
@@ -65,7 +99,14 @@ export const updateCampaign = async (
   campaignId: string,
   input: Partial<CampaignInput>
 ): Promise<Campaign> => {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured() || !supabase) {
+    return updateLocalCampaign(campaignId, {
+      ...input,
+      description: input.description ?? null
+    });
+  }
+
+  const { data, error } = (await supabase
     .from('campaigns')
     .update({
       ...input,
@@ -73,7 +114,7 @@ export const updateCampaign = async (
     })
     .eq('id', campaignId)
     .select('*')
-    .single();
+    .single()) as PostgrestSingleResponse<Campaign>;
 
   if (error) {
     throw error;
@@ -85,29 +126,47 @@ export const updateCampaign = async (
 export const listCampaignInfluencers = async (
   campaignId: string
 ): Promise<CampaignInfluencerDetails[]> => {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured() || !supabase) {
+    const influencerCache = new Map<string, Influencer | null>();
+    const getLocalInfluencer = (id: string): Influencer | null => {
+      if (!influencerCache.has(id)) {
+        influencerCache.set(id, getLocalInfluencerById(id));
+      }
+      return influencerCache.get(id) ?? null;
+    };
+
+    return listLocalCampaignInfluencers(campaignId).map((item) => {
+      const influencer = getLocalInfluencer(item.influencer_id);
+
+      return ({
+      ...item,
+      influencer: influencer
+        ? {
+            id: influencer.id,
+            name: influencer.name,
+            handle: influencer.handle,
+            platform: influencer.platform,
+            followers: influencer.followers,
+            engagement_rate: influencer.engagement_rate
+          }
+        : null
+    });
+    });
+  }
+
+  type CampaignInfluencerJoin = CampaignInfluencer & { influencers: Influencer | null };
+
+  const { data, error } = (await supabase
     .from('campaign_influencers')
-    .select(
-      `
-      *,
-      influencers (
-        id,
-        name,
-        handle,
-        platform,
-        followers,
-        engagement_rate
-      )
-    `
-    )
+    .select('*, influencers (id,name,handle,platform,followers,engagement_rate)')
     .eq('campaign_id', campaignId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<CampaignInfluencerJoin>;
 
   if (error) {
     throw error;
   }
 
-  return data.map((item) => ({
+  return (data ?? []).map((item) => ({
     ...item,
     influencer: item.influencers
       ? {
@@ -125,10 +184,14 @@ export const listCampaignInfluencers = async (
 export const assignInfluencerToCampaign = async (input: {
   campaign_id: string;
   influencer_id: string;
-  role?: string;
-  agreed_fee?: number;
+  role?: string | null;
+  agreed_fee?: number | null;
 }): Promise<CampaignInfluencer> => {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured() || !supabase) {
+    return assignLocalInfluencerToCampaign(input);
+  }
+
+  const { data, error } = (await supabase
     .from('campaign_influencers')
     .insert({
       campaign_id: input.campaign_id,
@@ -138,7 +201,7 @@ export const assignInfluencerToCampaign = async (input: {
       status: 'active'
     })
     .select('*')
-    .single();
+    .single()) as PostgrestSingleResponse<CampaignInfluencer>;
 
   if (error) {
     throw error;
@@ -150,27 +213,40 @@ export const assignInfluencerToCampaign = async (input: {
 export const listCampaignSubmissions = async (
   campaignId: string
 ): Promise<CampaignSubmissionDetails[]> => {
-  const { data, error } = await supabase
+  if (!isSupabaseConfigured() || !supabase) {
+    const localSubmissions = listLocalSubmissions('all').filter(
+      (item) => item.campaign_id === campaignId
+    );
+    return localSubmissions.map((item) => {
+      const influencer = getLocalInfluencerById(item.influencer_id);
+
+      return ({
+        ...item,
+        influencer: influencer
+          ? {
+              id: influencer.id,
+              name: influencer.name,
+              handle: influencer.handle,
+              platform: influencer.platform
+            }
+          : null
+      });
+    });
+  }
+
+  type CampaignSubmissionJoin = Submission & { influencers: Influencer | null };
+
+  const { data, error } = (await supabase
     .from('submissions')
-    .select(
-      `
-      *,
-      influencers (
-        id,
-        name,
-        handle,
-        platform
-      )
-    `
-    )
+    .select('*, influencers (id,name,handle,platform)')
     .eq('campaign_id', campaignId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<CampaignSubmissionJoin>;
 
   if (error) {
     throw error;
   }
 
-  return data.map((item) => ({
+  return (data ?? []).map((item) => ({
     ...item,
     influencer: item.influencers
       ? {

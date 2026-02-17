@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { AppProviders } from '@/components';
 import { AuthProvider } from '@/features/auth';
 
-export default function RootLayout(): JSX.Element {
+export default function RootLayout() {
   return (
     <AppProviders>
       <AuthProvider>

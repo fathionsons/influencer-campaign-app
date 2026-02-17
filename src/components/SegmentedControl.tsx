@@ -17,7 +17,7 @@ export const SegmentedControl = <T extends string | number>({
   options,
   value,
   onChange
-}: SegmentedControlProps<T>): JSX.Element => {
+}: SegmentedControlProps<T>) => {
   return (
     <View style={styles.container}>
       {options.map((option) => {

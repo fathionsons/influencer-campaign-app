@@ -7,7 +7,7 @@ interface SectionTitleProps {
   subtitle?: string;
 }
 
-export const SectionTitle = ({ title, subtitle }: SectionTitleProps): JSX.Element => {
+export const SectionTitle = ({ title, subtitle }: SectionTitleProps) => {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.title}>{title}</Text>

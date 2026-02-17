@@ -7,7 +7,7 @@ interface EmptyStateProps {
   description: string;
 }
 
-export const EmptyState = ({ title, description }: EmptyStateProps): JSX.Element => {
+export const EmptyState = ({ title, description }: EmptyStateProps) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>

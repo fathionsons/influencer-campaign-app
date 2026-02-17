@@ -7,7 +7,7 @@ interface StatusBadgeProps {
   tone?: 'default' | 'warning' | 'danger' | 'success';
 }
 
-export const StatusBadge = ({ label, tone = 'default' }: StatusBadgeProps): JSX.Element => {
+export const StatusBadge = ({ label, tone = 'default' }: StatusBadgeProps) => {
   return (
     <View style={[styles.badge, tone === 'warning' && styles.warning, tone === 'danger' && styles.danger, tone === 'success' && styles.success]}>
       <Text

@@ -90,8 +90,8 @@ export const useAssignInfluencer = (campaignId: string) => {
       return assignInfluencerToCampaign({
         campaign_id: campaignId,
         influencer_id: input.influencer_id,
-        role: input.role,
-        agreed_fee: input.agreed_fee
+        role: input.role ?? null,
+        agreed_fee: input.agreed_fee ?? null
       });
     },
     onSuccess: async () => {

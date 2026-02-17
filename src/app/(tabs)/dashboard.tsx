@@ -22,7 +22,7 @@ import { formatCurrency } from '@/utils/format';
 
 const MAX_ITEMS_PER_SECTION = 3;
 
-export default function DashboardScreen(): JSX.Element {
+export default function DashboardScreen() {
   const router = useRouter();
   const { data, isLoading, error } = useDashboardData();
   const markPayoutPaid = useMarkPayoutPaid();

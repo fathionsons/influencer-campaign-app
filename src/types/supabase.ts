@@ -10,9 +10,36 @@ import type {
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+type Relationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+
+type TableBase = {
+  Row: Record<string, unknown>;
+  Insert: Record<string, unknown>;
+  Update: Record<string, unknown>;
+  Relationships: Relationship[];
+};
+
+type GenericView = {
+  Row: Record<string, unknown>;
+  Insert: Record<string, unknown>;
+  Update: Record<string, unknown>;
+  Relationships: Relationship[];
+};
+
+type GenericFunction = {
+  Args: Record<string, unknown> | never;
+  Returns: unknown;
+};
+
 export interface Database {
   public: {
-    Tables: {
+    Tables: Record<string, TableBase> & {
       profiles: {
         Row: Profile;
         Insert: {
@@ -25,6 +52,7 @@ export interface Database {
           timezone?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       campaigns: {
         Row: Campaign;
@@ -48,6 +76,7 @@ export interface Database {
           status?: Campaign['status'];
           updated_at?: string;
         };
+        Relationships: [];
       };
       influencers: {
         Row: Influencer;
@@ -69,6 +98,7 @@ export interface Database {
           email?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       campaign_influencers: {
         Row: CampaignInfluencer;
@@ -85,6 +115,22 @@ export interface Database {
           status?: CampaignInfluencer['status'];
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'campaign_influencers_campaign_id_fkey';
+            columns: ['campaign_id'];
+            isOneToOne: false;
+            referencedRelation: 'campaigns';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'campaign_influencers_influencer_id_fkey';
+            columns: ['influencer_id'];
+            isOneToOne: false;
+            referencedRelation: 'influencers';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       submissions: {
         Row: Submission;
@@ -113,6 +159,22 @@ export interface Database {
           reviewed_at?: string | null;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'submissions_campaign_id_fkey';
+            columns: ['campaign_id'];
+            isOneToOne: false;
+            referencedRelation: 'campaigns';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'submissions_influencer_id_fkey';
+            columns: ['influencer_id'];
+            isOneToOne: false;
+            referencedRelation: 'influencers';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       payouts: {
         Row: Payout;
@@ -133,6 +195,22 @@ export interface Database {
           paid_at?: string | null;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'payouts_campaign_id_fkey';
+            columns: ['campaign_id'];
+            isOneToOne: false;
+            referencedRelation: 'campaigns';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payouts_influencer_id_fkey';
+            columns: ['influencer_id'];
+            isOneToOne: false;
+            referencedRelation: 'influencers';
+            referencedColumns: ['id'];
+          }
+        ];
       };
       notification_devices: {
         Row: NotificationDevice;
@@ -143,15 +221,16 @@ export interface Database {
           push_token?: string | null;
         };
         Update: {
-          one_signal_id?: string;
+          one_signal_id?: string | null;
           platform?: string | null;
           push_token?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Views: Record<string, GenericView>;
+    Functions: Record<string, GenericFunction>;
+    Enums: Record<string, string>;
   };
 }

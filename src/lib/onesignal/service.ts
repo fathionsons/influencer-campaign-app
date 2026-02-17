@@ -3,7 +3,10 @@ import { Platform } from 'react-native';
 import { LogLevel, OneSignal } from 'react-native-onesignal';
 
 import { supabase } from '@/lib/supabase/client';
+import { upsertLocalNotificationDevice } from '@/lib/localStore';
+import { isSupabaseConfigured } from '@/utils/env';
 import { getOptionalEnv } from '@/utils/env';
+import { isExpoGo } from '@/utils/platform';
 
 let initialized = false;
 
@@ -11,6 +14,10 @@ const oneSignalAppId = getOptionalEnv('EXPO_PUBLIC_ONESIGNAL_APP_ID');
 
 export const initializeOneSignal = async (): Promise<boolean> => {
   if (!oneSignalAppId) {
+    return false;
+  }
+
+  if (isExpoGo()) {
     return false;
   }
 
@@ -27,7 +34,7 @@ export const initializeOneSignal = async (): Promise<boolean> => {
 };
 
 export const linkOneSignalToUser = async (userId: string): Promise<void> => {
-  if (!oneSignalAppId) {
+  if (!oneSignalAppId || isExpoGo()) {
     return;
   }
 
@@ -43,6 +50,16 @@ export const linkOneSignalToUser = async (userId: string): Promise<void> => {
   ]);
 
   if (!oneSignalId) {
+    return;
+  }
+
+  if (!isSupabaseConfigured() || !supabase) {
+    upsertLocalNotificationDevice({
+      user_id: userId,
+      one_signal_id: oneSignalId,
+      platform: Device.osName ?? Platform.OS,
+      push_token: pushToken ?? null
+    });
     return;
   }
 
@@ -64,7 +81,7 @@ export const linkOneSignalToUser = async (userId: string): Promise<void> => {
 };
 
 export const unlinkOneSignalUser = (): void => {
-  if (!oneSignalAppId || !initialized) {
+  if (!oneSignalAppId || !initialized || isExpoGo()) {
     return;
   }
 
@@ -72,7 +89,7 @@ export const unlinkOneSignalUser = (): void => {
 };
 
 export const setPushOptIn = (enabled: boolean): void => {
-  if (!oneSignalAppId || !initialized) {
+  if (!oneSignalAppId || !initialized || isExpoGo()) {
     return;
   }
 
@@ -85,5 +102,5 @@ export const setPushOptIn = (enabled: boolean): void => {
 };
 
 export const oneSignalEnabled = (): boolean => {
-  return Boolean(oneSignalAppId);
+  return Boolean(oneSignalAppId) && !isExpoGo();
 };

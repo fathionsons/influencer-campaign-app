@@ -3,7 +3,7 @@ import { Redirect } from 'expo-router';
 import { LoadingState, Screen } from '@/components';
 import { useAuth } from '@/features/auth';
 
-export default function IndexPage(): JSX.Element {
+export default function IndexPage() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {

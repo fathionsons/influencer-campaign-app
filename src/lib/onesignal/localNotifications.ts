@@ -1,15 +1,31 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false
-  })
-});
+import { isExpoGo } from '@/utils/platform';
+
+const getNotifications = async () => {
+  if (isExpoGo()) {
+    throw new Error('Notifications require a development build (Expo Go limitation).');
+  }
+
+  const Notifications = await import('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false
+    })
+  });
+
+  return Notifications;
+};
 
 export const ensureLocalNotificationPermission = async (): Promise<boolean> => {
+  if (isExpoGo()) {
+    return false;
+  }
+
+  const Notifications = await getNotifications();
   const permissions = await Notifications.getPermissionsAsync();
 
   if (permissions.granted) {
@@ -25,11 +41,16 @@ export const sendLocalTestNotification = async (): Promise<void> => {
 };
 
 export const sendLocalNotification = async (title: string, body: string): Promise<void> => {
+  if (isExpoGo()) {
+    throw new Error('Expo Go does not support push notifications. Use a dev build.');
+  }
+
   const hasPermission = await ensureLocalNotificationPermission();
   if (!hasPermission) {
     throw new Error('Notifications permission not granted');
   }
 
+  const Notifications = await getNotifications();
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -44,6 +65,10 @@ export const scheduleDeadlineReminder = async (
   body: string,
   triggerDate: Date
 ): Promise<string | null> => {
+  if (isExpoGo()) {
+    return null;
+  }
+
   const hasPermission = await ensureLocalNotificationPermission();
   if (!hasPermission) {
     return null;
@@ -53,6 +78,7 @@ export const scheduleDeadlineReminder = async (
     return null;
   }
 
+  const Notifications = await getNotifications();
   return Notifications.scheduleNotificationAsync({
     content: {
       title,

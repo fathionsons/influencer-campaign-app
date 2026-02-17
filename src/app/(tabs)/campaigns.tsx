@@ -72,7 +72,7 @@ const campaignStatusOptions: Array<{ label: string; value: Campaign['status'] }>
   { label: 'Completed', value: 'completed' }
 ];
 
-export default function CampaignsScreen(): JSX.Element {
+export default function CampaignsScreen() {
   const router = useRouter();
 
   const campaignFilter = useUiStore((state) => state.campaignFilter);

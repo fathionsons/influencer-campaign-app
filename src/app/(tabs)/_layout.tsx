@@ -2,7 +2,7 @@ import { Redirect, Tabs } from 'expo-router';
 
 import { useAuth } from '@/features/auth';
 
-export default function TabsLayout(): JSX.Element {
+export default function TabsLayout() {
   const { user, isLoading } = useAuth();
 
   if (!isLoading && !user) {

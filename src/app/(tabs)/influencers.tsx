@@ -50,7 +50,7 @@ const EMPTY_FORM: InfluencerFormState = {
   email: ''
 };
 
-export default function InfluencersScreen(): JSX.Element {
+export default function InfluencersScreen() {
   const { data, isLoading, error } = useInfluencers();
   const createInfluencer = useCreateInfluencer();
 

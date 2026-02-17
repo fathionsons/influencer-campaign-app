@@ -8,7 +8,7 @@ interface KpiCardProps {
   value: string;
 }
 
-export const KpiCard = ({ label, value }: KpiCardProps): JSX.Element => {
+export const KpiCard = ({ label, value }: KpiCardProps) => {
   return (
     <Card style={styles.card}>
       <Text style={styles.label}>{label}</Text>

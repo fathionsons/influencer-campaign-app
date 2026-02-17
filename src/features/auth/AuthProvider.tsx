@@ -8,6 +8,7 @@ import {
   signUpWithEmail,
   upsertProfile
 } from '@/features/auth/api';
+import { getLocalProfile, getLocalUserId, upsertLocalProfile } from '@/lib/localStore';
 import { ensureLocalNotificationPermission } from '@/lib/onesignal/localNotifications';
 import {
   initializeOneSignal,
@@ -18,6 +19,7 @@ import {
 import { supabase } from '@/lib/supabase/client';
 import { useUiStore } from '@/stores/uiStore';
 import type { Profile } from '@/types';
+import { isSupabaseConfigured } from '@/utils/env';
 
 interface AuthContextValue {
   session: Session | null;
@@ -32,9 +34,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
+export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [localUser, setLocalUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const notificationsEnabled = useUiStore((state) => state.notificationsEnabled);
 
@@ -51,6 +54,21 @@ export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
         await initializeOneSignal();
         if (notificationsEnabled) {
           await ensureLocalNotificationPermission();
+        }
+        if (!isSupabaseConfigured() || !supabase) {
+          const localUserId = getLocalUserId();
+          const localProfile = getLocalProfile();
+          const mockUser = { id: localUserId, email: 'local@influencehub.dev' } as User;
+
+          if (!mounted) {
+            return;
+          }
+
+          setLocalUser(mockUser);
+          setProfile(localProfile);
+          await linkOneSignalToUser(localUserId);
+          setIsLoading(false);
+          return;
         }
 
         const { data, error } = await supabase.auth.getSession();
@@ -77,6 +95,12 @@ export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
     };
 
     void bootstrap();
+
+    if (!isSupabaseConfigured() || !supabase) {
+      return () => {
+        mounted = false;
+      };
+    }
 
     const {
       data: { subscription }
@@ -106,13 +130,29 @@ export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
   const value = useMemo<AuthContextValue>(() => {
     return {
       session,
-      user: session?.user ?? null,
+      user: session?.user ?? localUser ?? null,
       profile,
       isLoading,
       signIn: async (email: string, password: string) => {
+        if (!isSupabaseConfigured() || !supabase) {
+          const localUserId = getLocalUserId();
+          const mockUser = { id: localUserId, email: email.trim() } as User;
+          setLocalUser(mockUser);
+          upsertLocalProfile({ id: localUserId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+          return;
+        }
+
         await signInWithEmail(email.trim(), password);
       },
       signUp: async (email: string, password: string) => {
+        if (!isSupabaseConfigured() || !supabase) {
+          const localUserId = getLocalUserId();
+          const mockUser = { id: localUserId, email: email.trim() } as User;
+          setLocalUser(mockUser);
+          upsertLocalProfile({ id: localUserId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+          return;
+        }
+
         const user = await signUpWithEmail(email.trim(), password);
         await upsertProfile({
           id: user.id,
@@ -120,9 +160,20 @@ export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
         });
       },
       signOut: async () => {
+        if (!isSupabaseConfigured() || !supabase) {
+          setLocalUser(null);
+          setProfile(null);
+          return;
+        }
+
         await signOutCurrentUser();
       },
       refreshProfile: async () => {
+        if (!isSupabaseConfigured() || !supabase) {
+          setProfile(getLocalProfile());
+          return;
+        }
+
         if (!session?.user?.id) {
           return;
         }
@@ -130,7 +181,7 @@ export const AuthProvider = ({ children }: PropsWithChildren): JSX.Element => {
         await loadProfile(session.user.id);
       }
     };
-  }, [isLoading, profile, session]);
+  }, [isLoading, localUser, profile, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

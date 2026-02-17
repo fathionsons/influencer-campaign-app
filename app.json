@@ -15,7 +15,12 @@
       "package": "com.influencehub.app"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "root": "src/app"
+        }
+      ],
       [
         "onesignal-expo-plugin",
         {

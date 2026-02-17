@@ -121,7 +121,14 @@ export const useUpdateSubmissionStatus = (submissionId: string) => {
         };
       });
 
-      await sendLocalNotification('Submission Updated', `Submission marked as ${updatedSubmission.status}.`);
+      try {
+        await sendLocalNotification(
+          'Submission Updated',
+          `Submission marked as ${updatedSubmission.status}.`
+        );
+      } catch (error) {
+        console.warn('Notification failed', error);
+      }
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });

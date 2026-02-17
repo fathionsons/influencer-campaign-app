@@ -6,7 +6,7 @@ interface ErrorBannerProps {
   message: string;
 }
 
-export const ErrorBanner = ({ message }: ErrorBannerProps): JSX.Element => {
+export const ErrorBanner = ({ message }: ErrorBannerProps) => {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.text}>{message}</Text>

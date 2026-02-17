@@ -6,7 +6,7 @@ import { AppInput, Button, Card, ErrorBanner, Screen, SectionTitle, colors, spac
 import { useAuth } from '@/features/auth';
 import { toErrorMessage } from '@/utils/format';
 
-export default function LoginScreen(): JSX.Element {
+export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
 

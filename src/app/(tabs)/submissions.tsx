@@ -72,7 +72,7 @@ const EMPTY_FORM: SubmissionRequestForm = {
   dueDate: ''
 };
 
-export default function SubmissionsScreen(): JSX.Element {
+export default function SubmissionsScreen() {
   const params = useLocalSearchParams<{ submissionId?: string; campaignId?: string }>();
 
   const submissionFilter = useUiStore((state) => state.submissionFilter);

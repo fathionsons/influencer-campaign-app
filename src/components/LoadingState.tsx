@@ -6,7 +6,7 @@ interface LoadingStateProps {
   label?: string;
 }
 
-export const LoadingState = ({ label = 'Loading...' }: LoadingStateProps): JSX.Element => {
+export const LoadingState = ({ label = 'Loading...' }: LoadingStateProps) => {
   return (
     <View style={styles.container}>
       <ActivityIndicator color={colors.accent} size="small" />

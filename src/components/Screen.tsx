@@ -7,7 +7,7 @@ interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
 }
 
-export const Screen = ({ children, scroll = false }: ScreenProps): JSX.Element => {
+export const Screen = ({ children, scroll = false }: ScreenProps) => {
   if (scroll) {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} style={styles.base}>

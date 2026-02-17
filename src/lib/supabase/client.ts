@@ -1,11 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient, type SupportedStorage } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type SupportedStorage } from '@supabase/supabase-js';
 
 import type { Database } from '@/types';
-import { getRequiredEnv } from '@/utils/env';
+import { getSupabaseConfig } from '@/utils/env';
 
-const supabaseUrl = getRequiredEnv('EXPO_PUBLIC_SUPABASE_URL');
-const supabaseAnonKey = getRequiredEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+const supabaseConfig = getSupabaseConfig();
 
 const storage: SupportedStorage = {
   getItem: (key) => AsyncStorage.getItem(key),
@@ -13,11 +12,13 @@ const storage: SupportedStorage = {
   removeItem: (key) => AsyncStorage.removeItem(key)
 };
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }
-});
+export const supabase: SupabaseClient<Database> | null = supabaseConfig
+  ? (createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+      auth: {
+        storage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+      }
+    }) as SupabaseClient<Database>)
+  : null;
