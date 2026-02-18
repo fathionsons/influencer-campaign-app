@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import {
   createInfluencer,
+  deleteInfluencer,
   getInfluencerById,
   getInfluencerPerformance,
   listInfluencerCampaigns,
@@ -59,6 +60,23 @@ export const useUpdateInfluencer = (influencerId: string) => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.influencers() });
       await queryClient.invalidateQueries({ queryKey: queryKeys.influencer(influencerId) });
+    }
+  });
+};
+
+export const useDeleteInfluencer = (influencerId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deleteInfluencer(influencerId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.influencers() });
+      await queryClient.invalidateQueries({ queryKey: ['influencer'] });
+      await queryClient.invalidateQueries({ queryKey: ['campaign'] });
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['payouts'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
     }
   });
 };

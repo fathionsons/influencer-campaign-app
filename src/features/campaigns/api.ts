@@ -3,6 +3,7 @@ import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supab
 import {
   assignLocalInfluencerToCampaign,
   createLocalCampaign,
+  deleteLocalCampaign,
   getLocalCampaign,
   getLocalCampaignById,
   getLocalInfluencerById,
@@ -121,6 +122,18 @@ export const updateCampaign = async (
   }
 
   return data;
+};
+
+export const deleteCampaign = async (campaignId: string): Promise<void> => {
+  if (!isSupabaseConfigured() || !supabase) {
+    deleteLocalCampaign(campaignId);
+    return;
+  }
+
+  const { error } = await supabase.from('campaigns').delete().eq('id', campaignId);
+  if (error) {
+    throw error;
+  }
 };
 
 export const listCampaignInfluencers = async (

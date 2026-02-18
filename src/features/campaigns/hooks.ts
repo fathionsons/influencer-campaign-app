@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth';
 import {
   assignInfluencerToCampaign,
   createCampaign,
+  deleteCampaign,
   getCampaignById,
   listCampaignInfluencers,
   listCampaignSubmissions,
@@ -62,6 +63,22 @@ export const useUpdateCampaign = (campaignId: string) => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.campaign(campaignId) });
+    }
+  });
+};
+
+export const useDeleteCampaign = (campaignId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deleteCampaign(campaignId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      await queryClient.invalidateQueries({ queryKey: ['campaign'] });
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['payouts'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
     }
   });
 };

@@ -92,7 +92,7 @@ export default function DashboardScreen() {
             <View>
               <Text style={styles.rowTitle}>{submission.title}</Text>
               <Text style={styles.rowSubtitle}>
-                {submission.campaign?.campaign_name ?? 'Unknown campaign'} • due {formatDate(submission.due_date)}
+                {submission.campaign?.campaign_name ?? 'Unknown campaign'} - due {formatDate(submission.due_date)}
               </Text>
             </View>
             <Text style={styles.rowAction}>Open</Text>
@@ -190,7 +190,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
             <Button
-              label={markPayoutPaid.isPending ? 'Saving...' : 'Mark paid'}
+              label={markPayoutPaid.isPending - 'Saving...' : 'Mark paid'}
               onPress={() => {
                 confirmAction(
                   'Mark payout as paid',

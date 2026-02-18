@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Modal,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -31,12 +32,14 @@ import {
   useCampaignSubmissions,
   useCampaigns,
   useCreateCampaign,
+  useDeleteCampaign,
   useUpdateCampaign
 } from '@/features/campaigns';
 import { useInfluencers } from '@/features/influencers';
 import { formatDate } from '@/lib/dates';
 import { useUiStore } from '@/stores/uiStore';
 import type { Campaign } from '@/types';
+import { confirmAction } from '@/utils/confirm';
 import { formatCurrency, toErrorMessage } from '@/utils/format';
 
 type CampaignFormState = {
@@ -58,6 +61,8 @@ const EMPTY_CAMPAIGN_FORM: CampaignFormState = {
   budget: '0',
   status: 'draft'
 };
+
+const MAX_ITEMS_PER_SECTION = 3;
 
 const campaignFilterOptions: Array<{ label: string; value: Campaign['status'] | 'all' }> = [
   { label: 'All', value: 'all' },
@@ -101,6 +106,7 @@ export default function CampaignsScreen() {
 
   const updateCampaign = useUpdateCampaign(selectedCampaignId ?? '');
   const assignInfluencer = useAssignInfluencer(selectedCampaignId ?? '');
+  const deleteCampaign = useDeleteCampaign(selectedCampaignId ?? '');
 
   const groupedSubmissions = useMemo(() => {
     const items = campaignSubmissions.data ?? [];
@@ -111,6 +117,43 @@ export default function CampaignsScreen() {
       rejected: items.filter((item) => item.status === 'rejected')
     };
   }, [campaignSubmissions.data]);
+
+  const renderSubmissionGroup = (
+    label: string,
+    items: typeof groupedSubmissions.submitted,
+    tone: 'default' | 'warning' | 'danger' | 'success'
+  ) => (
+    <View style={styles.submissionGroup}>
+      <View style={styles.groupHeader}>
+        <Text style={styles.groupTitle}>{label}</Text>
+        <StatusBadge label={`${items.length}`} tone={tone} />
+      </View>
+      {items.length === 0 ? (
+        <Text style={styles.emptyHint}>No submissions.</Text>
+      ) : (
+        items.slice(0, MAX_ITEMS_PER_SECTION).map((submission) => (
+          <Pressable
+            key={submission.id}
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/submissions',
+                params: { submissionId: submission.id }
+              })
+            }
+            style={styles.submissionRow}
+          >
+            <View style={styles.flexGrow}>
+              <Text style={styles.rowTitleText}>{submission.title}</Text>
+              <Text style={styles.rowMetaText}>
+                {submission.influencer?.name ?? 'Influencer'} - Due {formatDate(submission.due_date)}
+              </Text>
+            </View>
+            <Text style={styles.rowAction}>Open</Text>
+          </Pressable>
+        ))
+      )}
+    </View>
+  );
 
   const handleOpenEdit = (): void => {
     if (!selectedCampaign.data) {
@@ -245,7 +288,7 @@ export default function CampaignsScreen() {
             </View>
             <StatusBadge
               label={campaign.status}
-              tone={campaign.status === 'active' ? 'success' : campaign.status === 'draft' ? 'warning' : 'default'}
+              tone={campaign.status === 'active' - 'success' : campaign.status === 'draft' - 'warning' : 'default'}
             />
           </View>
           <Text style={styles.cardMeta}>
@@ -299,7 +342,7 @@ export default function CampaignsScreen() {
               <View key={entry.id} style={styles.rowWrap}>
                 <Text style={styles.rowTitleText}>{entry.influencer?.name ?? 'Influencer'}</Text>
                 <Text style={styles.rowMetaText}>
-                  @{entry.influencer?.handle ?? 'unknown'} • {entry.role ?? 'No role'}
+                  @{entry.influencer?.handle ?? 'unknown'} - {entry.role ?? 'No role'}
                 </Text>
               </View>
             ))
@@ -308,10 +351,33 @@ export default function CampaignsScreen() {
           )}
 
           <Text style={styles.sectionLabel}>Submissions by status</Text>
-          <Text style={styles.rowMetaText}>Submitted: {groupedSubmissions.submitted.length}</Text>
-          <Text style={styles.rowMetaText}>Needs changes: {groupedSubmissions.needsChanges.length}</Text>
-          <Text style={styles.rowMetaText}>Approved: {groupedSubmissions.approved.length}</Text>
-          <Text style={styles.rowMetaText}>Rejected: {groupedSubmissions.rejected.length}</Text>
+          {renderSubmissionGroup('Submitted', groupedSubmissions.submitted, 'default')}
+          {renderSubmissionGroup('Needs changes', groupedSubmissions.needsChanges, 'warning')}
+          {renderSubmissionGroup('Approved', groupedSubmissions.approved, 'success')}
+          {renderSubmissionGroup('Rejected', groupedSubmissions.rejected, 'danger')}
+
+          <Button
+            label={deleteCampaign.isPending ? 'Deleting...' : 'Delete campaign'}
+            onPress={() => {
+              if (!selectedCampaignId) {
+                return;
+              }
+
+              confirmAction(
+                'Delete campaign',
+                'This removes the campaign plus related submissions, assignments, and payouts.',
+                'Delete',
+                () => {
+                  void deleteCampaign
+                    .mutateAsync()
+                    .then(() => setSelectedCampaignId(null))
+                    .catch((err) => Alert.alert('Delete failed', toErrorMessage(err, 'Unable to delete campaign')));
+                }
+              );
+            }}
+            style={styles.deleteButton}
+            variant="danger"
+          />
         </Card>
       ) : null}
 
@@ -335,7 +401,7 @@ export default function CampaignsScreen() {
               <View style={styles.modalActions}>
                 <Button label="Cancel" onPress={() => setCreateVisible(false)} style={styles.actionButton} variant="secondary" />
                 <Button
-                  label={createCampaign.isPending ? 'Creating...' : 'Create'}
+                  label={createCampaign.isPending - 'Creating...' : 'Create'}
                   onPress={() => void createCampaignFromState()}
                   style={styles.actionButton}
                 />
@@ -365,7 +431,7 @@ export default function CampaignsScreen() {
               <View style={styles.modalActions}>
                 <Button label="Cancel" onPress={() => setEditVisible(false)} style={styles.actionButton} variant="secondary" />
                 <Button
-                  label={updateCampaign.isPending ? 'Saving...' : 'Save'}
+                  label={updateCampaign.isPending - 'Saving...' : 'Save'}
                   onPress={() => void updateCampaignFromState()}
                   style={styles.actionButton}
                 />
@@ -389,7 +455,7 @@ export default function CampaignsScreen() {
                   onPress={() => setAssignmentInfluencerId(influencer.id)}
                   style={[
                     styles.selectRow,
-                    assignmentInfluencerId === influencer.id ? styles.selectedRow : undefined
+                    assignmentInfluencerId === influencer.id - styles.selectedRow : undefined
                   ]}
                 >
                   <Text style={styles.rowTitleText}>{influencer.name}</Text>
@@ -412,7 +478,7 @@ export default function CampaignsScreen() {
               <View style={styles.modalActions}>
                 <Button label="Cancel" onPress={() => setAssignVisible(false)} style={styles.actionButton} variant="secondary" />
                 <Button
-                  label={assignInfluencer.isPending ? 'Assigning...' : 'Assign'}
+                  label={assignInfluencer.isPending - 'Assigning...' : 'Assign'}
                   onPress={() => void assignSelectedInfluencer()}
                   style={styles.actionButton}
                 />
@@ -508,6 +574,34 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     marginTop: 2
+  },
+  rowAction: {
+    color: colors.accent,
+    fontWeight: '700'
+  },
+  submissionGroup: {
+    marginTop: spacing.sm
+  },
+  groupHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  groupTitle: {
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 13
+  },
+  submissionRow: {
+    alignItems: 'center',
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm
+  },
+  deleteButton: {
+    marginTop: spacing.md
   },
   modalBackdrop: {
     backgroundColor: 'rgba(16,35,26,0.35)',

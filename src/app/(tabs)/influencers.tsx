@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppInput,
@@ -17,12 +17,14 @@ import {
 } from '@/components';
 import {
   useCreateInfluencer,
+  useDeleteInfluencer,
   useInfluencer,
   useInfluencerCampaigns,
   useInfluencerPerformance,
   useInfluencers
 } from '@/features/influencers';
 import type { InfluencerPlatform } from '@/types';
+import { confirmAction } from '@/utils/confirm';
 import { formatCompactNumber, formatPercent, toErrorMessage } from '@/utils/format';
 
 type InfluencerFormState = {
@@ -53,6 +55,7 @@ const EMPTY_FORM: InfluencerFormState = {
 export default function InfluencersScreen() {
   const { data, isLoading, error } = useInfluencers();
   const createInfluencer = useCreateInfluencer();
+  const deleteInfluencer = useDeleteInfluencer(selectedInfluencerId ?? '');
 
   const [createVisible, setCreateVisible] = useState(false);
   const [form, setForm] = useState<InfluencerFormState>(EMPTY_FORM);
@@ -122,7 +125,7 @@ export default function InfluencersScreen() {
             <StatusBadge label={influencer.platform} />
           </View>
           <Text style={styles.meta}>
-            {formatCompactNumber(influencer.followers)} followers •{' '}
+            {formatCompactNumber(influencer.followers)} followers -{' '}
             {formatPercent(influencer.engagement_rate)} engagement
           </Text>
         </Pressable>
@@ -165,13 +168,39 @@ export default function InfluencersScreen() {
               <View key={campaignLink.id} style={styles.rowItem}>
                 <Text style={styles.name}>{campaignLink.campaign?.campaign_name ?? 'Campaign'}</Text>
                 <Text style={styles.meta}>
-                  {campaignLink.campaign?.brand_name ?? 'Brand'} • {campaignLink.status}
+                  {campaignLink.campaign?.brand_name ?? 'Brand'} - {campaignLink.status}
                 </Text>
               </View>
             ))
           ) : (
             <Text style={styles.meta}>No campaigns assigned yet.</Text>
           )}
+        
+
+          <Button
+            label={deleteInfluencer.isPending ? 'Deleting...' : 'Delete influencer'}
+            onPress={() => {
+              if (!selectedInfluencerId) {
+                return;
+              }
+
+              confirmAction(
+                'Delete influencer',
+                'This removes the influencer plus linked submissions and payouts.',
+                'Delete',
+                () => {
+                  void deleteInfluencer
+                    .mutateAsync()
+                    .then(() => setSelectedInfluencerId(null))
+                    .catch((err) =>
+                      Alert.alert('Delete failed', toErrorMessage(err, 'Unable to delete influencer'))
+                    );
+                }
+              );
+            }}
+            style={styles.deleteButton}
+            variant="danger"
+          />
         </Card>
       ) : null}
 

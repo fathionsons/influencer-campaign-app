@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isBefore, parseISO, subDays } from 'date-fns';
 
 import {
   createSubmissionRequest,
+  deleteSubmission,
   getSubmissionById,
   listSubmissions,
   updateSubmissionStatus,
@@ -9,7 +11,9 @@ import {
   type SubmissionInput,
   type SubmissionStatusPayload
 } from '@/features/submissions/api';
-import { sendLocalNotification } from '@/lib/onesignal/localNotifications';
+import { formatDate } from '@/lib/dates';
+import { scheduleDeadlineReminder, sendLocalNotification } from '@/lib/onesignal/localNotifications';
+import { useUiStore } from '@/stores/uiStore';
 import { queryKeys } from '@/utils/queryKeys';
 
 export const useSubmissions = (status: SubmissionListItem['status'] | 'all') => {
@@ -35,14 +39,37 @@ export const useSubmission = (submissionId: string | null) => {
 
 export const useCreateSubmission = () => {
   const queryClient = useQueryClient();
+  const notificationsEnabled = useUiStore((state) => state.notificationsEnabled);
 
   return useMutation({
     mutationFn: (input: SubmissionInput) => createSubmissionRequest(input),
-    onSuccess: async () => {
+    onSuccess: async (submission) => {
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
       await queryClient.invalidateQueries({ queryKey: ['campaign'] });
       await queryClient.invalidateQueries({ queryKey: ['analytics'] });
+
+      if (!notificationsEnabled) {
+        return;
+      }
+
+      try {
+        const dueDate = parseISO(submission.due_date);
+        if (!Number.isNaN(dueDate.getTime())) {
+          const dueAtNine = new Date(dueDate);
+          dueAtNine.setHours(9, 0, 0, 0);
+          const reminderDate = subDays(dueAtNine, 1);
+          const targetDate = isBefore(reminderDate, new Date()) ? dueAtNine : reminderDate;
+
+          await scheduleDeadlineReminder(
+            'Upcoming deadline',
+            `${submission.title} is due ${formatDate(submission.due_date)}.`,
+            targetDate
+          );
+        }
+      } catch (error) {
+        console.warn('Deadline reminder failed', error);
+      }
     }
   });
 };
@@ -54,6 +81,7 @@ interface MutationContext {
 
 export const useUpdateSubmissionStatus = (submissionId: string) => {
   const queryClient = useQueryClient();
+  const notificationsEnabled = useUiStore((state) => state.notificationsEnabled);
 
   return useMutation({
     mutationFn: (payload: SubmissionStatusPayload) => updateSubmissionStatus(submissionId, payload),
@@ -121,16 +149,32 @@ export const useUpdateSubmissionStatus = (submissionId: string) => {
         };
       });
 
-      try {
-        await sendLocalNotification(
-          'Submission Updated',
-          `Submission marked as ${updatedSubmission.status}.`
-        );
-      } catch (error) {
-        console.warn('Notification failed', error);
+      if (notificationsEnabled) {
+        try {
+          await sendLocalNotification(
+            'Submission Updated',
+            `Submission marked as ${updatedSubmission.status}.`
+          );
+        } catch (error) {
+          console.warn('Notification failed', error);
+        }
       }
     },
     onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['campaign'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    }
+  });
+};
+
+export const useDeleteSubmission = (submissionId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deleteSubmission(submissionId),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.invalidateQueries({ queryKey: ['campaign'] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });

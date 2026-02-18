@@ -50,19 +50,19 @@ export default function LoginScreen() {
           <AppInput
             label="Password"
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder="********"
             secureTextEntry
             value={password}
           />
           <Button
             disabled={submitting || email.length === 0 || password.length < 6}
-            label={submitting ? 'Signing in...' : 'Sign In'}
+            label={submitting - 'Signing in...' : 'Sign In'}
             onPress={() => void onSubmit()}
           />
         </Card>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>No account yet?</Text>
+          <Text style={styles.footerText}>No account yet-</Text>
           <Link href="/(auth)/signup" style={styles.link}>
             Create one
           </Link>

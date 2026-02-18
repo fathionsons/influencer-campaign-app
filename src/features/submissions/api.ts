@@ -2,6 +2,7 @@ import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supab
 
 import {
   createLocalSubmission,
+  deleteLocalSubmission,
   getLocalCampaignById,
   getLocalInfluencerById,
   getLocalSubmission,
@@ -226,4 +227,16 @@ export const updateSubmissionStatus = async (
   }
 
   return data;
+};
+
+export const deleteSubmission = async (submissionId: string): Promise<void> => {
+  if (!isSupabaseConfigured() || !supabase) {
+    deleteLocalSubmission(submissionId);
+    return;
+  }
+
+  const { error } = await supabase.from('submissions').delete().eq('id', submissionId);
+  if (error) {
+    throw error;
+  }
 };

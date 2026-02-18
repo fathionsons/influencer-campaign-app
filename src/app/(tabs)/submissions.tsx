@@ -2,6 +2,7 @@ import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -29,6 +30,7 @@ import { useCampaigns } from '@/features/campaigns';
 import { useInfluencers } from '@/features/influencers';
 import {
   useCreateSubmission,
+  useDeleteSubmission,
   useSubmission,
   useSubmissions,
   useUpdateSubmissionStatus
@@ -36,6 +38,7 @@ import {
 import { formatDate } from '@/lib/dates';
 import { useUiStore } from '@/stores/uiStore';
 import type { Submission } from '@/types';
+import { confirmAction } from '@/utils/confirm';
 import { toErrorMessage } from '@/utils/format';
 
 type SubmissionRequestForm = {
@@ -92,6 +95,7 @@ export default function SubmissionsScreen() {
 
   const submissionDetail = useSubmission(selectedSubmissionId);
   const updateStatus = useUpdateSubmissionStatus(selectedSubmissionId ?? '');
+  const deleteSubmission = useDeleteSubmission(selectedSubmissionId ?? '');
 
   useEffect(() => {
     if (params.submissionId) {
@@ -206,7 +210,7 @@ export default function SubmissionsScreen() {
             <View style={styles.flexGrow}>
               <Text style={styles.title}>{submission.title}</Text>
               <Text style={styles.subtitle}>
-                {submission.campaign?.campaign_name ?? 'Campaign'} • {submission.influencer?.name ?? 'Influencer'}
+                {submission.campaign?.campaign_name ?? 'Campaign'} - {submission.influencer?.name ?? 'Influencer'}
               </Text>
             </View>
             <StatusBadge
@@ -232,7 +236,7 @@ export default function SubmissionsScreen() {
             <View style={styles.flexGrow}>
               <Text style={styles.detailTitle}>{submissionDetail.data.title}</Text>
               <Text style={styles.subtitle}>
-                {submissionDetail.data.campaign?.campaign_name ?? 'Campaign'} •{' '}
+                {submissionDetail.data.campaign?.campaign_name ?? 'Campaign'} -{' '}
                 {submissionDetail.data.influencer?.name ?? 'Influencer'}
               </Text>
             </View>
@@ -310,6 +314,35 @@ export default function SubmissionsScreen() {
               variant="danger"
             />
           </View>
+
+          <Button
+            disabled={deleteSubmission.isPending}
+            label={deleteSubmission.isPending ? 'Deleting...' : 'Delete submission'}
+            onPress={() => {
+              if (!selectedSubmissionId) {
+                return;
+              }
+
+              confirmAction(
+                'Delete submission',
+                'This permanently removes the submission record.',
+                'Delete',
+                () => {
+                  void deleteSubmission
+                    .mutateAsync()
+                    .then(() => {
+                      setSelectedSubmissionId(null);
+                      setFeedback('');
+                    })
+                    .catch((err) =>
+                      Alert.alert('Delete failed', toErrorMessage(err, 'Unable to delete submission'))
+                    );
+                }
+              );
+            }}
+            style={styles.deleteButton}
+            variant="danger"
+          />
         </Card>
       ) : null}
 

@@ -295,6 +295,16 @@ export const updateLocalCampaign = (campaignId: string, input: Partial<Campaign>
   return campaign;
 };
 
+export const deleteLocalCampaign = (campaignId: string): void => {
+  ensureSeeded();
+  state.campaigns = state.campaigns.filter((campaign) => campaign.id !== campaignId);
+  state.campaignInfluencers = state.campaignInfluencers.filter(
+    (item) => item.campaign_id !== campaignId
+  );
+  state.submissions = state.submissions.filter((item) => item.campaign_id !== campaignId);
+  state.payouts = state.payouts.filter((item) => item.campaign_id !== campaignId);
+};
+
 export const listLocalInfluencers = (): Influencer[] => {
   ensureSeeded();
   return state.influencers.filter((item) => item.owner_user_id === LOCAL_USER_ID);
@@ -332,6 +342,16 @@ export const updateLocalInfluencer = (
   const influencer = getLocalInfluencer(influencerId);
   Object.assign(influencer, input, { updated_at: touch() });
   return influencer;
+};
+
+export const deleteLocalInfluencer = (influencerId: string): void => {
+  ensureSeeded();
+  state.influencers = state.influencers.filter((item) => item.id !== influencerId);
+  state.campaignInfluencers = state.campaignInfluencers.filter(
+    (item) => item.influencer_id !== influencerId
+  );
+  state.submissions = state.submissions.filter((item) => item.influencer_id !== influencerId);
+  state.payouts = state.payouts.filter((item) => item.influencer_id !== influencerId);
 };
 
 export const listLocalCampaignInfluencers = (campaignId: string): CampaignInfluencer[] => {
@@ -401,6 +421,11 @@ export const updateLocalSubmission = (submissionId: string, input: Partial<Submi
   const submission = getLocalSubmission(submissionId);
   Object.assign(submission, input, { updated_at: touch() });
   return submission;
+};
+
+export const deleteLocalSubmission = (submissionId: string): void => {
+  ensureSeeded();
+  state.submissions = state.submissions.filter((item) => item.id !== submissionId);
 };
 
 export const listLocalPayouts = (): Payout[] => {
